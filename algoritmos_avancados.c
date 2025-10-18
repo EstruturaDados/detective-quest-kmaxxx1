@@ -9,6 +9,10 @@
 #define MAX_NOME_SALA 50
 #define MAX_TEXTO_PISTA 50 // Capacidade máxima para o texto da pista
 
+// Determina o máximo de caracteres que o nome da sala pode ocupar no texto da pista.
+// 50 (MAX_TEXTO_PISTA) - 16 (Tamanho de "Chave XX ()" e NULL) = 34
+#define MAX_NOME_SALA_NA_PISTA 34
+
 // ============================================================================
 // --- Estrutura do Mapa (Árvore Binária) ---
 // ============================================================================
@@ -16,7 +20,7 @@
 // Struct que representa um cômodo (nó) na árvore binária
 typedef struct Sala {
     char nome[MAX_NOME_SALA];
-    bool temPista; // NOVO: Flag para indicar se a sala tem uma pista a ser encontrada
+    bool temPista; 
     struct Sala *esquerda;
     struct Sala *direita;
 } Sala;
@@ -38,8 +42,8 @@ typedef struct Pista {
 // ============================================================================
 
 // Funções da Sala (Mapa)
-Sala* criarSala(const char* nome, bool temPista); // Modificada
-void explorarSalas(Sala *raiz_mapa, Pista **raiz_pistas); // Modificada
+Sala* criarSala(const char* nome, bool temPista); 
+void explorarSalas(Sala *raiz_mapa, Pista **raiz_pistas); 
 void liberarMapa(Sala *raiz);
 
 // Funções da Pista (BST)
@@ -62,7 +66,7 @@ void limpar_buffer();
  */
 int main() {
     Sala *hall_entrada = NULL;
-    Pista *bst_pistas = NULL; // Raiz da Árvore de Busca Binária (BST)
+    Pista *bst_pistas = NULL; 
 
     printf("--- Detective Quest: Organização de Pistas (Nível Aventureiro) ---\n");
     printf("Explore a mansão para encontrar pistas, que serão armazenadas em ordem alfabética.\n\n");
@@ -124,7 +128,7 @@ Sala* criarSala(const char* nome, bool temPista) {
 
     strncpy(nova_sala->nome, nome, MAX_NOME_SALA - 1);
     nova_sala->nome[MAX_NOME_SALA - 1] = '\0';
-    nova_sala->temPista = temPista; // Inicializa a flag de pista
+    nova_sala->temPista = temPista;
     nova_sala->esquerda = NULL;
     nova_sala->direita = NULL;
 
@@ -180,10 +184,8 @@ Pista* inserirPista(Pista *raiz, const char* texto) {
     int comparacao = strcmp(texto, raiz->texto);
 
     if (comparacao < 0) {
-        // Nova pista deve ir para a sub-árvore esquerda
         raiz->esquerda = inserirPista(raiz->esquerda, texto);
     } else if (comparacao > 0) {
-        // Nova pista deve ir para a sub-árvore direita
         raiz->direita = inserirPista(raiz->direita, texto);
     }
     // Se for igual, ignora a inserção (pista duplicada)
@@ -199,7 +201,6 @@ Pista* inserirPista(Pista *raiz, const char* texto) {
 void listarPistasEmOrdem(Pista *raiz) {
     if (raiz == NULL) return;
 
-    // Esquerda -> Raiz -> Direita
     listarPistasEmOrdem(raiz->esquerda);
     printf("   - %s\n", raiz->texto);
     listarPistasEmOrdem(raiz->direita);
@@ -229,7 +230,7 @@ void liberarPistas(Pista *raiz) {
  */
 void explorarSalas(Sala *sala_atual, Pista **raiz_pistas) {
     char escolha[10];
-    int pista_counter = 1; // Para gerar nomes únicos para as pistas (exemplo)
+    int pista_counter = 1;
 
     printf("\n--- INÍCIO DA EXPLORAÇÃO ---\n");
     printf("Caminho percorrido: ");
@@ -241,14 +242,18 @@ void explorarSalas(Sala *sala_atual, Pista **raiz_pistas) {
         if (sala_atual->temPista) {
             char texto_pista[MAX_TEXTO_PISTA];
 
-            // Gera uma string de pista simples
-            snprintf(texto_pista, MAX_TEXTO_PISTA, "Chave %d (%s)", pista_counter++, sala_atual->nome);
+            // CORREÇÃO DO ERRO: Usa *.*s para limitar o comprimento da string 'nome'
+            // Isso garante que o buffer de MAX_TEXTO_PISTA não seja estourado.
+            snprintf(texto_pista, MAX_TEXTO_PISTA, "Chave %d (%.*s)", 
+                     pista_counter++, 
+                     MAX_NOME_SALA_NA_PISTA, // Largura máxima do nome no formato
+                     sala_atual->nome);
 
             // Insere a pista na BST (inserir())
             *raiz_pistas = inserirPista(*raiz_pistas, texto_pista);
 
             printf("\n\n*** PISTA ENCONTRADA! ***\n");
-            printf("A pista '%s' foi adicionada ao seu dossiê. Ela será ordenada automaticamente.\n", texto_pista);
+            printf("A pista '%s' foi adicionada ao seu dossiê.\n", texto_pista);
 
             // Desativa a pista para que não seja encontrada novamente
             sala_atual->temPista = false;
@@ -270,7 +275,7 @@ void explorarSalas(Sala *sala_atual, Pista **raiz_pistas) {
         if (sala_atual->direita != NULL) {
             printf("  [D]ireita: %s\n", sala_atual->direita->nome);
         }
-        printf("  [L]istar pistas (emOrdem)\n"); // NOVO: Opção de listar pistas
+        printf("  [L]istar pistas (emOrdem)\n");
         printf("  [S]air da exploração\n");
 
         printf("Escolha seu próximo caminho (e/d/l/s): ");
@@ -288,7 +293,6 @@ void explorarSalas(Sala *sala_atual, Pista **raiz_pistas) {
              printf("\n--- PISTAS ATUAIS (Ordem Alfabética) ---\n");
              listarPistasEmOrdem(*raiz_pistas);
              printf("-------------------------------------------\n");
-             // O loop continua na sala atual
         } else if (strcmp(escolha, "e") == 0 || strcmp(escolha, "E") == 0) {
             proxima_sala = sala_atual->esquerda;
         } else if (strcmp(escolha, "d") == 0 || strcmp(escolha, "D") == 0) {
